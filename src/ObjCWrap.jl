@@ -1,5 +1,7 @@
 module ObjCWrap
 
-# Write your package code here.
-
+include("primitives.jl")
+include("methods.jl")
+include("call.jl")
+include("syntax.jl")
 end
