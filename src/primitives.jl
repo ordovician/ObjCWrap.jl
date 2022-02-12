@@ -48,7 +48,7 @@ classptr(name) = ccall(:objc_getClass, Ptr{Cvoid}, (Ptr{Cchar},),
                        
 unsafe_convert(::Type{Ptr{Cvoid}}, class::Class) = class.ptr
 
-function Class(name::AbstractString)
+function Class(name::Union{AbstractString, Symbol})
   ptr = classptr(name)
   ptr == C_NULL && error("Couldn't find class $name")
   return Class(ptr)

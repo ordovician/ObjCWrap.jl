@@ -19,7 +19,7 @@ function calltransform(ex::Expr)
   obj = objcm(ex.args[1])
   args = ex.args[2:end]
   isempty(args) && callerror()
-  if isexpr(args[1], Symbol)
+  if typeof(args[1]) == Symbol
     length(args) > 1 && callerror()
     return :($message($obj, $(Selector(args[1]))))
   end
@@ -29,11 +29,17 @@ function calltransform(ex::Expr)
   :($message($obj, $msg, $(args...)))
 end
 
-objcm(ex::Expr) =
-  isexpr(ex, :hcat) ? calltransform(ex) :
-  isexpr(ex, :vcat) ? flatvcat(ex) :
-  isexpr(ex, [:block, :let]) ? Expr(:block, map(objcm, ex.args)...) :
-  esc(ex)
+function objcm(ex::Expr)
+  if isexpr(ex, :hcat)
+      calltransform(ex)
+  elseif isexpr(ex, :vcat)
+      flatvcat(ex)
+  elseif isexpr(ex, [:block, :let])
+      Expr(:block, map(objcm, ex.args)...)
+  else
+      esc(ex)
+  end
+end
 
 objcm(ex) = ex
 
@@ -44,7 +50,12 @@ end
 # Import Classes
 
 macro classes(names)
-  isexpr(names, Symbol) ? (names = [names]) : (names = names.args)
-  Expr(:block, [:(const $(esc(name)) = Class($(Expr(:quote, name))))
-                for name in names]..., nothing)
+    if typeof(names) == Symbol
+        names = [names]
+    else
+        names = names.args
+    end
+    classdefs = [:(const $(esc(name)) = Class($(Expr(:quote, name))))
+                for name in names]
+    Expr(:block, classdefs..., nothing)
 end
