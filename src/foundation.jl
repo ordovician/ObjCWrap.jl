@@ -1,10 +1,12 @@
+import Base: show
+
 export YES, NO, nil
 export hostname
 export release # TODO: remove
 export loadbundle, framework
 
-@classes NSString, NSNumber, NSBundle, NSArray, NSObject, NSHost
-export   NSString, NSNumber, NSBundle, NSArray, NSObject, NSHost
+@classes NSString, NSNumber, NSDate, NSBundle, NSArray, NSObject, NSHost
+export   NSString, NSNumber, NSDate, NSBundle, NSArray, NSObject, NSHost
 
 const YES = true
 const NO  = false
@@ -42,3 +44,15 @@ end
 
 framework(name) = loadbundle("/System/Library/Frameworks/$name.framework")
 
+function show(io::IO, obj::Object)
+    addr = repr(UInt(obj.ptr))
+    println(io, class(obj), " Object $addr")
+
+    description = @objc [obj description]
+    description == nil && return
+    
+    description = @objc [description UTF8String]
+    description == nil && return
+     
+    print(io, unsafe_string(description))
+end

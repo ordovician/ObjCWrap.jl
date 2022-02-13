@@ -58,13 +58,16 @@ end
 classexists(name) = classptr(name) ≠ C_NULL
 
 
-name(class::Class) =
-  ccall(:class_getName, Ptr{Cchar}, (Ptr{Cvoid},),
-            class) |> unsafe_string |> Symbol
+function name(class::Class)
+  cname = ccall(:class_getName, Ptr{Cchar}, (Ptr{Cvoid},), class) 
+  @assert cname != nil
+  Symbol(unsafe_string(cname))
+end
 
-ismeta(class::Class) =
-  ccall(:class_isMetaClass, Cint, (Ptr{Cvoid},),
-        class) |> int2bool
+function ismeta(class::Class)
+  ismeta = ccall(:class_isMetaClass, Cint, (Ptr{Cvoid},), class)
+  int2bool(ismeta)
+end
 
 function show(io::IO, class::Class)
   ismeta(class) && print(io, "^")
@@ -79,9 +82,13 @@ mutable struct Object
   ptr::Ptr{Cvoid}
   function Object(ptr)
       obj = new(ptr)
-      f(t) = @async begin
-          println("Releasing $t") # TODO: Remove, just for debugging
-          release(t)
+      function f(t) 
+          # msg = string("About to release ", repr(UInt(t.ptr)))          
+          # TODO: Remove println, just for debugging. Call release directly
+          @async begin
+              println("Releasing $t")
+              release(t)             
+          end
       end
       finalizer(f, obj)
   end
@@ -97,11 +104,4 @@ methods(obj::Object) = methods(class(obj))
 
 # show(io::IO, obj::Object) = print(io, class(obj), " Object")
 
-function show(io::IO, obj::Object)
-    println(io, class(obj), " Object")
-    description = @objc [[obj description] UTF8String] 
-    if description != nil
-        print(io, unsafe_string(description))
-    end
-end
 
