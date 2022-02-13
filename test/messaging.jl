@@ -1,4 +1,4 @@
-@testset "messaging" begin
+@testset "messaging tests" begin
     
     # This test makes the follow Objective-C calls in a low-level fashion
     # str = [[NSString alloc] initWithUTF8String: "hello"]

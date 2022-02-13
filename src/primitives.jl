@@ -95,5 +95,13 @@ class(obj) =
 
 methods(obj::Object) = methods(class(obj))
 
-show(io::IO, obj::Object) = print(io, class(obj), " Object")
+# show(io::IO, obj::Object) = print(io, class(obj), " Object")
+
+function show(io::IO, obj::Object)
+    println(io, class(obj), " Object")
+    description = @objc [[obj description] UTF8String] 
+    if description != nil
+        print(io, unsafe_string(description))
+    end
+end
 
