@@ -102,6 +102,6 @@ class(obj) =
 
 methods(obj::Object) = methods(class(obj))
 
-# show(io::IO, obj::Object) = print(io, class(obj), " Object")
+show(io::IO, obj::Object) = print(io, class(obj), " Object")
 
 
