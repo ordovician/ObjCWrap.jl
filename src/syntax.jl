@@ -1,10 +1,11 @@
 using Base.Meta
 
 export @objc, @classes
-export objcm # Just for easy debugging. Don't normally export
+export objcm # # TODO: remove
 
 callerror() = error("ObjectiveC call: use [obj method] or [obj method:param ...]")
 
+# TODO: Remove? Don't know when this gets used
 function flatvcat(ex::Expr)
   any(ex->isexpr(ex, :row), ex.args) || return ex
   flat = Expr(:hcat)
@@ -68,15 +69,19 @@ function calltransform(ex::Expr)
 end
 
 function objcm(ex::Expr)
-  if isexpr(ex, :hcat)
-      calltransform(ex)
-  elseif isexpr(ex, :vcat)
-      flatvcat(ex)
-  elseif isexpr(ex, [:block, :let])
-      Expr(:block, map(objcm, ex.args)...)
-  else
-      esc(ex)
-  end
+    # check if we got an objective-c call such as [NSSound soundNamed:name]
+    # an objc call is a hcat of symbols and expressions
+    if isexpr(ex, :hcat)
+        calltransform(ex)
+    elseif isexpr(ex, :vcat) # TODO: Remove? Don't know when this gets used
+        flatvcat(ex)
+    elseif isexpr(ex, [:block, :let])
+        Expr(:block, map(objcm, ex.args)...)
+    else
+        # This expression did not have any ObjC-like expression which
+        # needed transormation, but subexpression may.
+        Expr(ex.head, map(objcm, ex.args)...) 
+    end
 end
 
 objcm(ex) = ex

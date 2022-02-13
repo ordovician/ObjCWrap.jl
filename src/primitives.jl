@@ -72,10 +72,19 @@ function show(io::IO, class::Class)
 end
 
 
-## Class ###############################################
+## Object ###############################################
+function release end
 
-struct Object
+mutable struct Object
   ptr::Ptr{Cvoid}
+  function Object(ptr)
+      obj = new(ptr)
+      f(t) = @async begin
+          println("Releasing $t") # TODO: Remove, just for debugging
+          release(t)
+      end
+      finalizer(f, obj)
+  end
 end
 
 unsafe_convert(::Type{Ptr{Cvoid}}, obj::Object) = obj.ptr
