@@ -1,6 +1,7 @@
 using Base.Meta
 
 export @objc, @classes
+export objcm # Just for easy debugging. Don't normally export
 
 callerror() = error("ObjectiveC call: use [obj method] or [obj method:param ...]")
 
@@ -33,16 +34,37 @@ That line basically translates into the following Julia code:
 """
 function calltransform(ex::Expr)
   obj = objcm(ex.args[1])
-  args = ex.args[2:end]
-  isempty(args) && callerror()
-  if typeof(args[1]) == Symbol
-    length(args) > 1 && callerror()
-    return :($message($obj, $(Selector(args[1]))))
+  params = ex.args[2:end]
+  isempty(params) && callerror()
+  
+  # Simple case such as [NSString new]
+  # params[1] would be symbol :new
+  if typeof(params[1]) == Symbol
+    if length(params) > 1
+        callerror()
+    end
+    return :($message($obj, $(Selector(params[1]))))
   end
-  all(arg->isexpr(arg, :(:)) && isexpr(arg.args[1], Symbol), args) || callerror()
-  msg = join(vcat([arg.args[1] for arg in args], ""), ":") |> Selector
-  args = [objcm(arg.args[2]) for arg in args]
-  :($message($obj, $msg, $(args...)))
+  
+  # Make sure each parameter is valid
+  # Assume params = [setObject:12 forKey: foo]
+  ok = all(params) do param
+      # assume param = [call:, :, setObject, 12]
+      isexpr(param, :call, 3) &&  
+      param.args[1] == :(:)   &&  
+      typeof(param.args[2]) == Symbol
+  end
+  ok || callerror()
+  
+  param_names = [param.args[2] for param in params]
+  
+  # Turn e.g. [setObject:12 forKey: foo] into "setObject:forKey:"
+  selector = map(param_names) do param
+    string(param, ':')
+  end |> join |> Selector
+  
+  values = [objcm(param.args[3]) for param in params]
+  :($message($obj, $selector, $(values...)))
 end
 
 function objcm(ex::Expr)
@@ -79,6 +101,10 @@ given Julia variable `klass`. So this would lookup the `NSString` class and assi
 the corresponding `NSString` class object to the a variable named `NSString`
 
     @classes NSString
+
+You can load multiple classes:
+
+    @classes NSString, NSBundle, NSArray, NSObject
 """
 macro classes(names)
     if typeof(names) == Symbol

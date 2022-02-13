@@ -1,4 +1,5 @@
 export Selector, Class, Object
+export @sel_str
 
 # import Base: show, convert, unsafe_convert, super, methods
 import Base: show, unsafe_convert
