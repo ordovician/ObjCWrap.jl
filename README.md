@@ -2,43 +2,64 @@
 
 [![Code Style: Blue](https://img.shields.io/badge/code%20style-blue-4495d1.svg)](https://github.com/invenia/BlueStyle)
 
-Attempt at recreating a Julia wrapper for Objective-C by updating old [ObjectiveC](https://github.com/JuliaInterop/ObjectiveC.jl) interop package originally created by Mike Innes.
+ObjCWrap.jl is an Objective-C bridge for Julia. The library allows you to call Objective-C methods using native syntax:
 
-# Guide to Code
+```julia
+using ObjCWrap
 
-This code allows us to write something that looks like Objective-C code such as:
+@classes NSNumber
 
-    @objc [NSString new]
+num = @objc [NSNumber numberWithInt:42]
+@objc [num intValue]
+```
 
-Using the `@objc` macro (defined in `syntax.jl`) we transform this to a Julia call which looks like this:
+This makes it easy to wrap Objective-C APIs from Julia.
 
-    message(Class("NSString"), Selector("new"))
+```julia
+using ObjCWrap
 
-This is all based on calling various C functions defined in Apple's Objective-C runtime. See [Objective-C Runtime documentation](https://developer.apple.com/documentation/objectivec/objective-c_runtime?language=objc).
+framework("AppKit")
 
-This code translates to the following low-level C call in Julia. First we get a pointer to some C struct representing the class named `NSString`:
+@classes NSSound
 
-    rettype = Ptr{Cvoid}
-    argtypes = (Ptr{Cchar},)
-    classname = pointer(string("NSString"))
-    class = ccall(:objc_getClass, rettype, argtypes, classname)
+function play(name::String)
+  @objc begin
+    sound = [NSSound soundNamed:name]
+    if [sound isPlaying] |> Bool
+      [sound stop]
+    end
+    [sound play]
+  end
+end
 
-Next we get a pointer to a C struct representing the selector. In Objective-C terminology, the _selector_ is what we use to select the method to call. In essence it is just a text string of the method name. However to speed up things Objective-C requires reuse the same string over and over again. Thus for a given method name, we need to lookup a point to the already registered name. That is what we call the selector.
+play("Purr")
+```
 
-    selname = pointer(string("new"))
-    sel = call(:sel_registerName, Ptr{Cvoid}, (Ptr{Cchar},), selname)
+Example of working with strings:
 
-Once we got a pointer to the class and the selector we can lookup the method registered on the given class for that selector. It is essentially a C function pointer which we are looking up. We are looking a pointer to the funcion which implements `[NSString new]`.
+```julia
+str = @objc [[NSString alloc] initWithUTF8String: "hello"]
+plain_chars = @objc [str UTF8String]
+s = unsafe_string(plain_chars)
+println(s)
+```
 
-    argtypes = (Ptr{Cvoid}, Ptr{Cvoid})
-    m = ccall(:class_getInstanceMethod, rettype, argtypes, class, sel)
+To make it easier to work with Objective-C in Julia we have defines various aliases such as:
 
-We later make a call to `objc_msgSend` to actually send the message to the class object `NSString`. It is worth nothing that `objc_msgSend` is not a normal C function. It is implemented in assembly and has a bit unsual call stack behavior. I suppose that is why `cglobal` is used.
+```julia
+const YES = true
+const NO  = false
+const nil = C_NULL
+```
 
-    cmsgsend = cglobal(:objc_msgSend)
-    argstypes = (Ptr{Cvoid}, Ptr{Cvoid})
-    result = ccall(cmsgsend, Ptr{Cvoid}, argstypes, class, sel)
 
-    objc_msgSend(class("NSString"), selector("new"))
-    
-    
+# History
+This code is a fork of [ObjectiveC](https://github.com/JuliaInterop/ObjectiveC.jl) interop package originally created by Mike Innes. It was created before Julia 1.x and thus no longer works.
+
+If you want to help out or fork this code, you can read the `code-guide.md` file to better understand how the wrapping works.
+
+# Installation
+This package is not distributed on JuliaHub yet. Thus to install you need to specify the URL directly. Get into package mode on the Julia command line using the ']' key.
+
+    pkg> add https://github.com/ordovician/ObjCWrap.jl
+

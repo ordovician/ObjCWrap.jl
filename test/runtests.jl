@@ -1,6 +1,7 @@
 using ObjCWrap
 using Test
 
-@testset "ObjCWrap.jl" begin
-    # Write your tests here.
+@testset "All Tests" begin
+    include("messaging.jl")
+    include("syntax.jl")
 end
