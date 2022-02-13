@@ -80,18 +80,18 @@ function release end
 
 mutable struct Object
   ptr::Ptr{Cvoid}
-  function Object(ptr)
-      obj = new(ptr)
-      function f(t) 
-          # msg = string("About to release ", repr(UInt(t.ptr)))          
-          # TODO: Remove println, just for debugging. Call release directly
-          @async begin
-              println("Releasing $t")
-              release(t)             
-          end
-      end
-      finalizer(f, obj)
-  end
+  # function Object(ptr)
+  #     obj = new(ptr)
+  #     function f(t)
+  #         # msg = string("About to release ", repr(UInt(t.ptr)))
+  #         # TODO: Remove println, just for debugging. Call release directly
+  #         @async begin
+  #             println("Releasing $t")
+  #             release(t)
+  #         end
+  #     end
+  #     finalizer(f, obj)
+  # end
 end
 
 unsafe_convert(::Type{Ptr{Cvoid}}, obj::Object) = obj.ptr
@@ -102,6 +102,9 @@ class(obj) =
 
 methods(obj::Object) = methods(class(obj))
 
-show(io::IO, obj::Object) = print(io, class(obj), " Object")
+# function show(io::IO, obj::Object)
+#     addr = repr(UInt(obj.ptr))
+#     println(io, class(obj), " Object $addr")
+# end
 
 

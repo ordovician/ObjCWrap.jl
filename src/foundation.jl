@@ -2,7 +2,7 @@ import Base: show
 
 export YES, NO, nil
 export hostname
-export release # TODO: remove
+export release, autorelease # TODO: remove
 export loadbundle, framework
 
 @classes NSString, NSNumber, NSDate, NSBundle, NSArray, NSObject, NSHost
@@ -28,6 +28,7 @@ function hostname()
 end
 
 release(obj) = @objc [obj release]
+autorelease(obj) = @objc [obj autorelease]
 
 # function Base.gc(obj::Object)
 #   finalizer(obj, release)
@@ -44,15 +45,15 @@ end
 
 framework(name) = loadbundle("/System/Library/Frameworks/$name.framework")
 
-# function show(io::IO, obj::Object)
-#     addr = repr(UInt(obj.ptr))
-#     println(io, class(obj), " Object $addr")
-#
-#     description = @objc [obj description]
-#     description == nil && return
-#
-#     description = @objc [description UTF8String]
-#     description == nil && return
-#
-#     print(io, unsafe_string(description))
-# end
+function show(io::IO, obj::Object)
+    addr = repr(UInt(obj.ptr))
+    println(io, class(obj), " Object $addr")
+
+    description = @objc [obj description]
+    description == nil && return
+
+    description = @objc [description UTF8String]
+    description == nil && return
+
+    print(io, unsafe_string(description))
+end
