@@ -1,5 +1,6 @@
 export Selector, Class, Object
 export @sel_str
+export classexists
 
 # import Base: show, convert, unsafe_convert, super, methods
 import Base: show, unsafe_convert
@@ -55,8 +56,15 @@ function Class(name::Union{AbstractString, Symbol})
   return Class(ptr)
 end
 
-classexists(name) = classptr(name) ≠ C_NULL
+"""
+    classexists(name::Union{AbstractString, Symbol}) -> Bool
 
+Check if class named `name` is already registered with the system. Useful to
+do before registering a new custom class.
+"""
+function classexists(name::Union{AbstractString, Symbol})
+    classptr(name) ≠ C_NULL
+end
 
 function name(class::Class)
   cname = ccall(:class_getName, Ptr{Cchar}, (Ptr{Cvoid},), class) 

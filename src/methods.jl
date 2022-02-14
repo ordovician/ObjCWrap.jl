@@ -81,7 +81,7 @@ signature(obj::Object, sel::Selector) =
 
 # Creating Methods
 
-const revtypeencodings = [v => k for (k, v) in typeencodings]
+const revtypeencodings = Dict(v => k for (k, v) in typeencodings)
 
 function encodetype(ts...)
   buf = IOBuffer()
@@ -90,5 +90,5 @@ function encodetype(ts...)
     haskey(revtypeencodings, t) || error("$t isn't a valid ObjectiveC type")
     print(buf, revtypeencodings[t])
   end
-  return takebuf_string(buf)
+  return String(take!(buf))
 end

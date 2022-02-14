@@ -34,4 +34,10 @@ We later make a call to `objc_msgSend` to actually send the message to the class
     result = ccall(cmsgsend, Ptr{Cvoid}, argstypes, class, sel)
 
     objc_msgSend(class("NSString"), selector("new"))
-    
+
+# Debugging Macros
+There is a lot of macros in use here to create nice Objective-C syntax. Keep in mind that you can expand macros to see that they do what you intend.
+
+
+    julia> @macroexpand(@objc [NSNumber numberWithInt:42])
+    :((ObjCWrap.message)(NSNumber, sel"numberWithInt:", 42))

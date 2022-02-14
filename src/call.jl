@@ -1,4 +1,4 @@
-export message
+export message, ctype
 
 Base.eltype(::Type{Type{T}}) where T = T
 
@@ -18,6 +18,12 @@ toobject(o::Object) = o
 toobject(c::Class) = c
 toobject(p::Ptr) = p
 
+"""
+    ctype(t::Type) -> Type
+
+Returns what C type should be used for our Julia ObjC types such as
+`Object` and `Selector`.
+"""
 ctype(x) = x
 ctype(o::Type{Object}) = Ptr{Cvoid}
 ctype(s::Type{Selector}) = Ptr{Cvoid}
