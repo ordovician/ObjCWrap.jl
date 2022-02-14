@@ -1,4 +1,5 @@
 export @class, @-
+export makefunc, MethodDef, Signature, Param
 
 # TODO: Remove. Just added to help debug in REPL
 export allocclass, createclass, register
@@ -59,24 +60,127 @@ end
 ### Syntax ###################
 
 macro class(cname, body)
-    name, supername = class_name(cname)    
+    name, supername = class_name(cname)
+    if !isexpr(body, :block)
+        error("You need to provide a block for class methods")
+    end
+
+    if classexists(name)
+        classobj = Class(name)
+    else
+        classobj = createclass(name, Class(supername))
+    end
+    
+    methodexpressions = filter(body.args) do arg
+        isexpr(arg, :macrocall)
+    end
+
+    for mexpr in methodexpressions
+        sign, fnbody = eval(mexpr)
+        mdef = makefunc(sign, fnbody)
+        setmethod(classobj, mdef.selector, mdef.cfunc, mdef.typestr)
+    end
+    :(const $(esc(name)) = Class($(Expr(:quote, name))))
 end
 
 function class_name(cname::Expr)
     if cname.head == :(<:)
-        (string(cname.args[1]), string(cname.args[2]))
+        (cname.args[1], cname.args[2])
     else
         error("You need to write class name or 'classname <: superclass'")
     end
 end
 
 function class_name(cname::Symbol)
-    (string(cname), "NSObject")
+    (cname, :NSObject)
 end
 
 ### Methods ###################
 
-macro -(rettype::Symbol, params...)
-    string(rettype)
-    dump(params[1])
+"Represent an ObjC parameter such as `multiply:(Ddouble)x`"
+struct Param
+    name::Symbol
+    kind::Symbol
+    value::Symbol
+end
+
+"ObjC method signature"
+struct Signature
+    params::Vector{Param}
+    returntype::Symbol
+end
+
+"Method definition which we can register with a ObjC class"
+struct MethodDef
+    selector::Selector  # Selector which will cause method to be called
+    typestr::String     # Tells ObjC what type each argument each
+    cfunc::Ptr{Cvoid}   # C function pointer to implementation of method
+end
+
+"Produce a selector from a signature"
+function Selector(sig::Signature)
+    map(sig.params) do param
+      string(param.name, ':')
+    end |> join |> Selector    
+end
+
+"An arbitrary name to use for Julia functions registered as ObjC method"
+funcname(sign::Signature) = Symbol(join([p.name for p in sign.params], '_'))    
+
+
+argtypes(sign::Signature) = (param.kind for param in sign.params)
+
+"""
+    argtuple(sig::Signature) -> Expr
+Returns a tuple expression with all the types of the arguments in the signature `sig`.
+"""
+argtuple(sign::Signature) = Expr(:tuple, argtypes(sign)...)
+
+macro -(rettype::Symbol, parts...)
+    # string(rettype)
+    # dump(params[1])
+    fnbody = parts[end]
+    params = map(parts[1:end-1]) do part
+        Param(
+            part.args[2],
+            part.args[3].args[2],
+            part.args[3].args[3]
+        )
+    end
+    sign = Signature(collect(params), rettype)
+    (sign, fnbody)
+end
+
+"Create a Julia function with signature `sign` and `body`"
+function makefunc(sign::Signature, body::Expr)
+    atuple = argtuple(sign)
+    params = map(sign.params) do param
+        :($(param.value)::$(param.kind))
+    end
+    
+    # Code in method without line number info
+    stmts = filter(body.args) do exp
+        !isa(exp, LineNumberNode)
+    end
+    
+    # NOTE: Not sure why we cannot use method name directly for
+    # @cfunction. That is why we store function in fn    
+    methodname = funcname(sign)
+    fn = @eval begin
+       function $methodname($(params...)) 
+           $(stmts...)
+       end
+    end
+    
+    # Turn Julia function in a C function
+    @eval begin
+        imp = @cfunction($fn, $(sign.returntype), $atuple)
+        typestr = encodetype(
+            $(sign.returntype), 
+            Object, 
+            Selector, 
+            $(argtypes(sign)...)) 
+    end
+    
+    MethodDef(Selector(sign), typestr, imp)
 end
