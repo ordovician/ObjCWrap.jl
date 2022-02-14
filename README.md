@@ -52,6 +52,20 @@ const NO  = false
 const nil = C_NULL
 ```
 
+ObjCWrap.jl also supports defining classes, using a variant of Objective-C
+syntax (which eschews the interface/implementation distinction):
+
+```julia
+@class type Foo
+  @- (Cdouble) multiply:(Cdouble)x by:(Cdouble)y begin
+    x*y # Note that this is Julia code
+  end
+end
+
+@objc [[Foo new] multiply:5 by:3]
+```
+
+Please note that class definitions are still a bit buggy and need further testing.
 
 # History
 This code is a fork of [ObjectiveC](https://github.com/JuliaInterop/ObjectiveC.jl) interop package originally created by Mike Innes. It was created before Julia 1.x and thus no longer works.

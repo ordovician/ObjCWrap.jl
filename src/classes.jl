@@ -59,6 +59,26 @@ end
 
 ### Syntax ###################
 
+"""
+    @class(classname, body)
+    
+Define a new Objective-C class with method. Instance methods are marked
+with a `@-`. Class methods are not yet supported.
+
+# Examples
+```julia-repl
+julia> @class Foobar begin
+          @- (Cdouble) multiply:(Cdouble)x by:(Cdouble)y begin
+            x * y
+          end
+       end
+       
+julia> foo = @objc [[Foobar alloc] init]
+
+julia> @objc [foo multiply:4 by:5]
+20.0
+```
+"""
 macro class(cname, body)
     name, supername = class_name(cname)
     if !isexpr(body, :block)

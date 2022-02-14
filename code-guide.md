@@ -34,6 +34,14 @@ We later make a call to `objc_msgSend` to actually send the message to the class
     result = ccall(cmsgsend, Ptr{Cvoid}, argstypes, class, sel)
 
     objc_msgSend(class("NSString"), selector("new"))
+    
+# Remaining Work
+Defining your own Objective-C classes still requires more testing and better error handling. Better error handling applies to all parts of the code.
+
+Adding support for structs to be able to more easily work with Cocoa is next thing which is required.
+
+This should however be easier to implement than when Mike Innes implemented the
+original ObjectiveC.jl package, since Julia did not have support for C struct then. For more info on how to use C structs from Julia look at: [Calling C and Fortran Code](https://docs.julialang.org/en/v1/manual/calling-c-and-fortran-code/)
 
 # Debugging Macros
 There is a lot of macros in use here to create nice Objective-C syntax. Keep in mind that you can expand macros to see that they do what you intend.
